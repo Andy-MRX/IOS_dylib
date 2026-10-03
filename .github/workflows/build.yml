@@ -1,0 +1,40 @@
+name: build-ios-dylib
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ldid
+        run: brew install ldid
+
+      - name: Show toolchain
+        run: |
+          clang --version
+          xcrun --sdk iphoneos --show-sdk-path
+
+      - name: Build dylib
+        run: make
+
+      - name: Verify
+        run: |
+          file payload.dylib
+          lipo -info payload.dylib
+          otool -L payload.dylib
+          codesign -dv payload.dylib 2>&1 | head -5 || true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: payload-dylib
+          path: |
+            payload.dylib
+            payload.plist
